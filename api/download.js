@@ -6,23 +6,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 🔥 IMPORTANT FIX: decode URL
-    const cleanUrl = decodeURIComponent(url);
+    // 🔥 STEP 1: decode incoming url
+    const decodedUrl = decodeURIComponent(url);
 
-    const response = await fetch(cleanUrl, {
+    // 🔥 STEP 2: SAFE encode only path part
+    const safeUrl = new URL(decodedUrl);
+    const finalUrl =
+      safeUrl.origin +
+      safeUrl.pathname
+        .split("/")
+        .map(seg => encodeURIComponent(seg))
+        .join("/");
+
+    // 🔥 FETCH FILE
+    const response = await fetch(finalUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0"
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://cinesubz.lk/"
       }
     });
 
     if (!response.ok) {
-      return res.status(500).send("Failed to fetch file");
+      return res.status(500).json({
+        status: false,
+        message: "Remote server blocked or file not found"
+      });
     }
 
     const buffer = await response.arrayBuffer();
 
-    let fileName = cleanUrl.split("/").pop();
-
+    let fileName = finalUrl.split("/").pop();
     fileName = `[Chdev]${fileName}`;
 
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
@@ -31,7 +44,11 @@ export default async function handler(req, res) {
     return res.send(Buffer.from(buffer));
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).send("Server error");
+    console.error("DOWNLOAD ERROR:", err);
+
+    return res.status(500).json({
+      status: false,
+      message: "Server error"
+    });
   }
 }
