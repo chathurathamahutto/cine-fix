@@ -17,26 +17,27 @@ export default async function handler(req, res) {
       return res.status(500).json({ status: false, message: "No manual link" });
     }
 
+    // 🔥 FORCE YOUR DOMAIN
     const newDomain = "https://06.sume321.online/";
+    const baseDownload = "https://cine-fix.vercel.app/api/download?url=";
 
-    // 🔥 extract file name
+    // filename
     let fileName = decodeURIComponent(manual.split("/").pop());
 
-    // remove old quality if exists
-    const cleanBase = fileName
-      .replace(/360p|480p|720p|1080p/g, "")
-      .replace(".mp4", "");
+    // extract base movie name (remove quality)
+    const cleanName = fileName.replace(/(360p|480p|720p|1080p)/g, "");
 
-    // 🔥 build clean filenames
-    const buildLink = (q) => {
-      return newDomain + cleanBase.trim() + "-" + q + ".mp4";
+    // 🔥 BUILD YOUR OWN LINKS (NO OLD DOMAIN)
+    const direct = {
+      "480p": newDomain + cleanName.replace(".mp4", "480p.mp4"),
+      "720p": newDomain + cleanName.replace(".mp4", "720p.mp4"),
+      "1080p": newDomain + cleanName.replace(".mp4", "1080p.mp4")
     };
 
-    // 🔥 FINAL DOWNLOAD LINKS (NO encode)
     const downloads = {
-      "480p": `https://karicine.vercel.app/api/download?url=${buildLink("480p")}`,
-      "720p": `https://karicine.vercel.app/api/download?url=${buildLink("720p")}`,
-      "1080p": `https://karicine.vercel.app/api/download?url=${buildLink("1080p")}`
+      "480p": baseDownload + encodeURIComponent(direct["480p"]),
+      "720p": baseDownload + encodeURIComponent(direct["720p"]),
+      "1080p": baseDownload + encodeURIComponent(direct["1080p"])
     };
 
     return res.status(200).json({
