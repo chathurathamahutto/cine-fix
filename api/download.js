@@ -1,6 +1,5 @@
 import fetch from "node-fetch";
 
-// fallback safe fetch
 globalThis.fetch = globalThis.fetch || fetch;
 
 export default async function handler(req, res) {
@@ -22,25 +21,31 @@ export default async function handler(req, res) {
       return res.status(500).send("Failed to fetch file");
     }
 
-    // 🔥 filename extract
+    // 🔥 GET FILE SIZE
+    const contentLength = response.headers.get("content-length");
+
+    if (contentLength) {
+      res.setHeader("Content-Length", contentLength);
+    }
+
+    // filename
     let fileName = decodeURIComponent(url.split("/").pop() || "video.mp4");
 
-    // clean filename
     fileName = fileName
       .replace(/\s+/g, "")
       .replace(/\[/g, "")
       .replace(/\]/g, "")
       .replace(/[^a-zA-Z0-9()._-]/g, "");
 
-    // prefix
     fileName = `[Chdev]${fileName}`;
 
-    // headers
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Type", "video/mp4");
     res.setHeader("Accept-Ranges", "bytes");
 
-    // stream
+    // optional: expose size to frontend (useful for UI)
+    res.setHeader("X-File-Size", contentLength || "unknown");
+
     response.body.pipe(res);
 
   } catch (err) {
