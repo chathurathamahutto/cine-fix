@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   const { url } = req.query;
 
   if (!url) {
-    return res.status(400).json({ status: false, message: "No URL provided" });
+    return res.status(400).json({ status: false });
   }
 
   try {
@@ -13,37 +13,34 @@ export default async function handler(req, res) {
 
     const manual = data?.links?.manual;
 
-    if (!manual) {
-      return res.status(500).json({ status: false, message: "No manual link" });
-    }
-
     const newDomain = "https://06.sume321.online/";
 
-    // 🔥 extract file name
     let fileName = decodeURIComponent(manual.split("/").pop());
 
-    // remove old quality if exists
     const cleanBase = fileName
       .replace(/360p|480p|720p|1080p/g, "")
-      .replace(".mp4", "");
+      .replace(/\.mp4/g, "");
 
-    // 🔥 build clean filenames
-    const buildLink = (q) => {
-      return newDomain + cleanBase.trim() + "-" + q + ".mp4";
+    const build = (q) => {
+      const rawUrl =
+        newDomain +
+        cleanBase.trim() +
+        q +
+        ".mp4";
+
+      // 🔥 IMPORTANT FIX
+      return encodeURI(`https://karicine.vercel.app/api/download?url=${rawUrl}`);
     };
 
-    // 🔥 FINAL DOWNLOAD LINKS (NO encode)
-    const downloads = {
-      "480p": `https://karicine.vercel.app/api/download?url=${buildLink("480p")}`,
-      "720p": `https://karicine.vercel.app/api/download?url=${buildLink("720p")}`,
-      "1080p": `https://karicine.vercel.app/api/download?url=${buildLink("1080p")}`
-    };
-
-    return res.status(200).json({
+    return res.json({
       status: true,
       creator: "Chathura",
       title: data.title,
-      downloads
+      downloads: {
+        "480p": build("480p"),
+        "720p": build("720p"),
+        "1080p": build("1080p")
+      }
     });
 
   } catch (err) {
