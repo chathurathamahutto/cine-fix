@@ -6,7 +6,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(url, {
+    // 🔥 IMPORTANT FIX: decode URL
+    const cleanUrl = decodeURIComponent(url);
+
+    const response = await fetch(cleanUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0"
       }
@@ -18,7 +21,7 @@ export default async function handler(req, res) {
 
     const buffer = await response.arrayBuffer();
 
-    let fileName = decodeURIComponent(url.split("/").pop());
+    let fileName = cleanUrl.split("/").pop();
 
     fileName = `[Chdev]${fileName}`;
 
@@ -29,6 +32,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error");
+    return res.status(500).send("Server error");
   }
 }
