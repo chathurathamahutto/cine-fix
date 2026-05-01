@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     }
 
     // 🔥 FORCE YOUR DOMAIN
-    const newDomain = "https://06.sume321.online/";
+    const newDomain = "https://06.teha416.online/";
     const baseDownload = "https://cine-fix.vercel.app/api/download?url=";
 
     // filename
