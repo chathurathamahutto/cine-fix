@@ -1,78 +1,72 @@
-async function checkUrl(url, timeout = 5000) {
-  return new Promise((resolve) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
-
-    fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal
-    })
-      .then(res => {
-        clearTimeout(timer);
-        if (res.ok) resolve(true);
-        else resolve(false);
-      })
-      .catch(() => {
-        clearTimeout(timer);
-        resolve(false);
-      });
-  });
-}
-
 export default async function handler(req, res) {
-  const { filename } = req.query;
-
-  if (!filename) {
-    return res.status(400).json({
-      status: false,
-      message: "filename required"
-    });
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).json({ status: false, message: "No URL provided" });
   }
 
   try {
-    const base = "https://";
+    const api = `https://karicine.netlify.app/.netlify/functions/scrapper?url=${url}`;
+    const response = await fetch(api);
+    const data = await response.json();
 
-    // build all domains
-    const domains = Array.from({ length: 45 }, (_, i) =>
-      `${base}${String(i + 1).padStart(2, "0")}.teha416.online/`
-    );
-
-    const testUrl = (domain) => domain + filename;
-
-    // 🚀 parallel check (FAST)
-    const results = await Promise.allSettled(
-      domains.map(async (domain) => {
-        const url = testUrl(domain);
-        const ok = await checkUrl(url);
-        return ok ? domain : null;
-      })
-    );
-
-    const working = results
-      .map(r => r.status === "fulfilled" ? r.value : null)
-      .find(d => d);
-
-    if (!working) {
-      return res.status(404).json({
-        status: false,
-        message: "No working domain found"
-      });
+    const manual = data?.links?.manual;
+    if (!manual) {
+      return res.status(500).json({ status: false, message: "No manual link" });
     }
 
-    const finalUrl = working + filename;
+    const baseDownload = "https://cine-fix.vercel.app/api/download?url=";
+
+    // filename + clean name
+    let fileName = decodeURIComponent(manual.split("/").pop());
+    const cleanName = fileName.replace(/(360p|480p|720p|1080p)/gi, "");
+
+    const qualities = ["480p", "720p", "1080p"];
+
+    // 🔥 Scan domains 01-45 for each quality
+    async function findWorkingDomain(quality) {
+      for (let i = 1; i <= 45; i++) {
+        const num = String(i).padStart(2, "0");
+        const domain = `https://${num}.teha416.online/`;
+        const testUrl = domain + cleanName.replace(".mp4", `${quality}.mp4`);
+
+        try {
+          const check = await fetch(testUrl, { method: "HEAD" });
+          if (check.ok || check.status === 206) {
+            return testUrl;
+          }
+        } catch (_) {
+          // domain not responding, try next
+        }
+      }
+      // fallback to 01 if nothing found
+      return `https://01.teha416.online/${cleanName.replace(".mp4", `${quality}.mp4`)}`;
+    }
+
+    // Run all quality checks in parallel
+    const [url480, url720, url1080] = await Promise.all(
+      qualities.map((q) => findWorkingDomain(q))
+    );
+
+    const direct = {
+      "480p": url480,
+      "720p": url720,
+      "1080p": url1080,
+    };
+
+    const downloads = {
+      "480p": baseDownload + encodeURIComponent(direct["480p"]),
+      "720p": baseDownload + encodeURIComponent(direct["720p"]),
+      "1080p": baseDownload + encodeURIComponent(direct["1080p"]),
+    };
 
     return res.status(200).json({
       status: true,
-      workingDomain: working,
-      url: finalUrl
+      creator: "Chathura",
+      title: data.title,
+      downloads,
     });
-
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      status: false,
-      message: "Server error"
-    });
+    return res.status(500).json({ status: false, message: "Server error" });
   }
 }
