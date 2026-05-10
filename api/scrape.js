@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     const baseCheck = "https://";
     let workingDomain = null;
 
-    for (let i = 1; i <= 45; i++) {
+    for (let i = 1; i <= 46; i++) {
       const testDomain = `https://${String(i).padStart(2, "0")}.teha416.online/`;
       const testUrl = testDomain + cleanName;
 
