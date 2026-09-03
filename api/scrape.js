@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         }
       }
       // fallback to 01 if nothing found
-      return `https://01.teha416.online/${cleanName.replace(".mp4", `${quality}.mp4`)}`;
+      return `https://cs07.skylines822.online/${cleanName.replace(".mp4", `${quality}.mp4`)}`;
     }
 
     // Run all quality checks in parallel
